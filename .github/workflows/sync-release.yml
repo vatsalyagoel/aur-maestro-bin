@@ -1,0 +1,57 @@
+name: Sync Maestro binary release
+
+on:
+  schedule:
+    - cron: '23 6 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    container: archlinux:base-devel
+    env:
+      BRANCH_NAME: "aur-sync/maestro-bin-release-${{ github.run_id }}"
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Install tools
+        run: |
+          pacman -Syu --noconfirm --needed git openssh curl jq python github-cli pacman-contrib sudo
+
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Prepare builder user
+        run: |
+          useradd -m builder
+          chown -R builder:builder "$GITHUB_WORKSPACE"
+          git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
+      - name: Update package metadata
+        run: sudo -u builder bash scripts/update-release.sh
+
+      - name: Verify package sources
+        run: sudo -u builder makepkg --verifysource --noconfirm
+
+      - name: Create or update pull request
+        run: |
+          if git diff --quiet -- PKGBUILD .SRCINFO; then
+            echo "No package changes detected."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git checkout -B "$BRANCH_NAME"
+          git add PKGBUILD .SRCINFO
+          git commit -m "Update Maestro binary AUR package"
+          git push origin "$BRANCH_NAME"
+
+          gh pr create \
+            --base "${GITHUB_REF_NAME}" \
+            --head "$BRANCH_NAME" \
+            --title "Update Maestro binary AUR package" \
+            --body "Updates maestro-bin to the latest upstream cli release."
