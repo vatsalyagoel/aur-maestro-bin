@@ -4,6 +4,11 @@ set -euo pipefail
 PKGNAME="maestro-bin"
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 AUR_URL="ssh://aur@aur.archlinux.org/${PKGNAME}.git"
+TMP_DIR=""
+
+cleanup() {
+  [[ -n "${TMP_DIR:-}" ]] && rm -rf "$TMP_DIR"
+}
 
 need_cmd() {
   command -v "$1" >/dev/null 2>&1 || {
@@ -14,9 +19,17 @@ need_cmd() {
 
 prepare_worktree() {
   local workdir="$1"
+  local clone_log clone_error
 
-  if git clone "$AUR_URL" "$workdir"; then
+  clone_log="$workdir.clone.log"
+  if git clone "$AUR_URL" "$workdir" 2>"$clone_log"; then
     return
+  fi
+
+  clone_error="$(<"$clone_log" 2>/dev/null || true)"
+  if [[ "$clone_error" == *"Host key verification failed"* || "$clone_error" == *"Permission denied"* || "$clone_error" == *"publickey"* || "$clone_error" == *"ssh_askpass"* ]]; then
+    printf '%s\n' "$clone_error" >&2
+    exit 1
   fi
 
   printf 'clone failed for %s; initializing temporary AUR repository\n' "$PKGNAME" >&2
@@ -59,10 +72,10 @@ main() {
     exit 1
   }
 
-  local tmp workdir
-  tmp="$(mktemp -d)"
-  trap 'rm -rf "$tmp"' EXIT
-  workdir="$tmp/$PKGNAME"
+  local workdir
+  TMP_DIR="$(mktemp -d)"
+  trap cleanup EXIT
+  workdir="$TMP_DIR/$PKGNAME"
 
   prepare_worktree "$workdir"
   ensure_git_identity "$workdir"
