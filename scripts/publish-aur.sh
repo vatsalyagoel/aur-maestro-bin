@@ -78,6 +78,7 @@ main() {
   workdir="$TMP_DIR/$PKGNAME"
 
   prepare_worktree "$workdir"
+  git -C "$workdir" checkout -B master
   ensure_git_identity "$workdir"
   sync_package_files "$workdir"
 
