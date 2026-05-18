@@ -1,0 +1,17 @@
+# Arch build outputs
+src/
+pkg/
+*.pkg.tar*
+*.log
+
+# Downloaded source artifacts
+*.tar.gz
+*.zip
+
+# Local editor and system files
+.DS_Store
+*.swp
+
+# Local orchestration state
+.sisyphus/
+.omc/
