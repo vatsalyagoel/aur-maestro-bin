@@ -78,7 +78,6 @@ main() {
   workdir="$TMP_DIR/$PKGNAME"
 
   prepare_worktree "$workdir"
-  git -C "$workdir" checkout -B master
   ensure_git_identity "$workdir"
   sync_package_files "$workdir"
 
@@ -90,7 +89,7 @@ main() {
   printf '%s: staged AUR changes\n' "$PKGNAME"
   git -C "$workdir" diff --cached --name-only
   git -C "$workdir" commit -m "Update ${PKGNAME} package"
-  git -C "$workdir" push origin master
+  git -C "$workdir" push origin HEAD:master
   printf '%s: published to AUR\n' "$PKGNAME"
 }
 
