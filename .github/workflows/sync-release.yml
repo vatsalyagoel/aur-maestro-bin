@@ -22,7 +22,7 @@ jobs:
           pacman -Syu --noconfirm --needed git openssh curl jq python github-cli pacman-contrib sudo
 
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10 # v6.0.3
 
       - name: Prepare builder user
         run: |
